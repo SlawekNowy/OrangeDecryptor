@@ -1,6 +1,13 @@
 OrangeDecryptor
 ---------------
 
+Fork notice:
+ - If you want to use this tool for modding please refer official Fruitbat Factory guidelines: https://steamcommunity.com/sharedfiles/filedetails/?id=2189405817. In short only whitelisted archives can be extracted, and only for modding purposes. They cannot be republished in any way shape or form. 
+ - Last sentence of that notice also applies to non-modding usage
+
+
+--------------------------------------
+
 一个用于解密 100% Orange Juice 资源包的小工具。
 
 参见：
