@@ -1,0 +1,5 @@
+{
+  "name": "OrangeDecryptor",
+  "version": "1.0",
+  "dependencies": [ "libzip","zlib" ]
+}

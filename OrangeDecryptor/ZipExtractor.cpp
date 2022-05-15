@@ -33,6 +33,15 @@ ZipExtractor::ZipExtractor(TCHAR* lpInputPath, TCHAR* lpOutputDirectory)
 
 	CreateDirectory(lpOutputDirectory, nullptr);
 	m_lpOutputDirectory = lpOutputDirectory;
+	std::wstring inputPath(lpInputPath);
+	for (auto entry : this->noEncryptionArchives) {
+		wchar_t* tentry = new wchar_t[20];
+		swprintf(tentry, 20, L"%hs", entry.data());
+		std::wstring tentryStr(tentry);
+
+		delete[] tentry;
+		isWhitelistedArchive |= (inputPath.find(tentryStr)!=std::string::npos);
+	}
 }
 
 ZipExtractor::~ZipExtractor()
@@ -71,39 +80,44 @@ void ZipExtractor::Extract()
 
 		std::wstring nameLower(filenameUnicode);
 		std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
-		const bool doDecrypt = HasEnding<std::wstring>(nameLower, L".dat");
+		const bool doDecrypt = HasEnding<std::wstring>(nameLower, L".dat") && !isWhitelistedArchive;
+
+		zip_int64_t readBytes = zip_fread(file, szBuffer, 4);
+		// 探测文件类型
 
 		if (doDecrypt)
 		{
-			// 探测文件类型
-			if (zip_fread(file, szBuffer, 4) != 4)
+			if (readBytes != 4)
 			{
+				//moved this here, since uncompressed data may be less than 4 bytes.
 				printf("File %s is less than 4 bytes, skip...\n", fileName.c_str());
 				continue;
 			}
-
 			decryptor->DecryptBuffer(szBuffer, 4);
-			const auto fileMagic = LPDWORD(LPVOID(szBuffer))[0];
-			if (fileMagic == 0x474E5089)
-			{
-				ext.assign(L".png");
-			}
-			else if (fileMagic == 0x20534444)
-			{
-				ext.assign(L".dds");
-			}
-			else
-			{
-				ext.assign(L"");
-				printf("Unknown magic: 0x%08x (%s)\n", fileMagic, fileName.c_str());
-			}
-			outputFile << ext;
+
 		}
+		const auto fileMagic = LPDWORD(LPVOID(szBuffer))[0];
+		if (fileMagic == 0x474E5089)
+		{
+			ext.assign(L".png");
+		}
+		else if (fileMagic == 0x20534444)
+		{
+
+			ext.assign(L".dds");
+		}
+		else
+		{
+			ext.assign(L"");
+			printf("Unknown magic: 0x%08x (%s)\n", fileMagic, fileName.c_str());
+		}
+		outputFile << ext;
 
 		const auto writer = File::CreateWriter(outputFile.str().c_str());
 
 		// 因为探测过才需要写出之前读的 4 个字节备份
-		if (doDecrypt) writer->Write(szBuffer, 4);
+		//if (doDecrypt) 
+			writer->Write(szBuffer, 4);
 
 		std::wstringstream progress;
 		progress
